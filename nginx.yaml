@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment # Was listed as deploy before. 
+metadata:
+  name: nginx-deploy
+  labels:
+    app: nginx
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:latest  # <:current> isn't a valid tag by default. 
+          ports:
+            - containerPort: 80
+          resources:  # This is how you add limits and requests to a manifest.
+            limits:
+              cpu: "0.5"
+              memory: "256Mi"
+            requests:
+              cpu: "0.2"
+              memory: "128Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  selector:
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP

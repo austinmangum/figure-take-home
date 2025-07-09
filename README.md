@@ -1,69 +1,66 @@
-# Welcome 
+# k8s-restart-database
 
-Welcome to Figure's DevOps skills assessment! 
+A Go CLI tool that gracefully restarts Kubernetes workloads (Deployments, StatefulSets, DaemonSets) containing a specific substring (default: `database`) in their names — similar to `kubectl rollout restart`.
 
-The goal of this assessment is to get an idea of how you work and your ability to speak in depth about the details in your work. Generally, this assessment should not take you longer than 30 minutes to complete. 
-
-Your answers will be reviewed with you in a subsequent interview.
-
-## Instructions
-
-1. Click on the green "Use This Template" button in the upper-right corner and create a copy of this repository in your own GitHub account.
-2. Name your respository and ensure that it's public, as you will need to share it with us for review.
-3. When you have completed the questions, please send the URL to the recruiter.
-
-## Assessments
-
-### Kubernetes
-
-1. Fix the issues with this Kubernetes manifest to ensure it is ready for deployment. 
-2. Add the following limits and requests to the manifest:
-- CPU limit of 0.5 CPU cores
-- Memory limit of 256 Mebibytes
-- CPU request of 0.2 CPU cores
-- Memory request of 128 Mebibytes 
-
-```yaml
-apiVersion: apps/v1
-kind: Deploy
-metadata:
-  name: nginx-deploy
-  labels:
-    app: nginx
-spec:
-  selector:
-    matchLabels:
-      app: nginx
-  template:
-    metadata:
-      labels:
-        app: nginx
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:current
-        ports:
-        - containerPort: 80
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: nginx-service
-spec:
-  selector:
-    app: nginx
-  ports:
-    - protocol: TCP
-      port: 80
-  type: ClusterIP
-  ```
 
-### Go
+## ✅ Features
 
-Write a script in Go that redeploys all pods in a Kubernetes cluster that have the word `database` in the name.
+- Mimics `kubectl rollout restart` by patching a restart annotation
+- Supports `deployment`, `statefulset`, and `daemonset` controllers
+- Allows namespace and match substring to be customized
+- Provides a full summary of successful and failed restarts
+- Uses local kubeconfig or in-cluster config for authentication
 
-Requirements:
-- Assume local credentials in your kube config have full access. There is no need to connect via a service account, etc.
-- You must use the [client-go](https://github.com/kubernetes/client-go) library.
-- Your script must perform a graceful restart, similar to kubectl rollout restart. Do not just delete pods.
-- You must use Go modules (no vendor directory).
+---
+
+## 🚀 Usage
+
+```bash
+go run main.go [--namespace=NAMESPACE] [--controller=TYPE] [--match=STRING]
+```
+
+### 🔧 Flags
+
+| Flag           | Description                                                                 |
+|----------------|-----------------------------------------------------------------------------|
+| `--namespace`  | Namespace to operate in. Defaults to current context's namespace            |
+| `--controller` | Controller type to restart: `deployment`, `statefulset`, `daemonset`        |
+| `--match`      | Substring to match in controller names (case-sensitive). Defaults to `database` |
+
+---
+
+## 🧪 Examples
+
+### Restart all controllers in the current namespace matching `"database"`
+```bash
+go run main.go
+```
+
+### Restart only StatefulSets containing `"postgres"` in the `prod` namespace
+```bash
+go run main.go --namespace=prod --controller=statefulset --match=postgres
+```
+
+---
+
+## 🔐 Authentication
+
+- Uses `~/.kube/config` by default (like `kubectl`)
+- Falls back to in-cluster config if running inside a Pod
+
+---
+
+## 📦 Build
+
+```bash
+go mod tidy
+go build -o k8s-restart
+```
+
+---
+
+## 🛑 Exit Codes
+
+- `0` — all restarts succeeded
+- `1` — at least one restart failed (details shown in summary)
