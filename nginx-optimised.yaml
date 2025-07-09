@@ -1,0 +1,64 @@
+# This optimised version assumes that this all need to be delared in the manifest file, but ideally this would be managed using Helm or something similar to keep code DRY and manageable.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deploy
+  labels:
+    app: nginx
+spec:
+  replicas: 2  # I like to run at least 2 replicas for higher availability
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.29.0-alpine  # I only use a specific image tag for production to make deployments more stable. Also, Ideally you would use as light weight of an image as possible
+          ports:
+            - containerPort: 80
+          resources:
+            limits:
+              cpu: "0.5"
+              memory: "256Mi"
+            requests:
+              cpu: "0.2"
+              memory: "128Mi"
+          readinessProbe:           # I always include a readiness probe for Better traffic management. NGINX stub_status would be even better
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:            # I also always include a liveness probe to restart unhealthy pods. NGINX stub_status would be even better
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 5
+          securityContext:          # Best practice: drop privileges
+            runAsNonRoot: true
+            runAsUser: 101  # since we are using a light wieght image we will need to create this user in the docker file. We could omit this line and accept any non-root user but one will have to be created regardless. so might as well be declarative. 
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  selector:
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP
