@@ -1,66 +1,70 @@
-# k8s-restart-database
+# k8s-restart-script
 
-A Go CLI tool that gracefully restarts Kubernetes workloads (Deployments, StatefulSets, DaemonSets) containing a specific substring (default: `database`) in their names — similar to `kubectl rollout restart`.
-
----
-
-## ✅ Features
-
-- Mimics `kubectl rollout restart` by patching a restart annotation
-- Supports `deployment`, `statefulset`, and `daemonset` controllers
-- Allows namespace and match substring to be customized
-- Provides a full summary of successful and failed restarts
-- Uses local kubeconfig or in-cluster config for authentication
+A simple Go script to restart all Deployments, StatefulSets, and DaemonSets in your current Kubernetes namespace whose names contain the substring `database`.  
+It works by patching a restart annotation, similar to `kubectl rollout restart`.
 
 ---
 
-## 🚀 Usage
+## Features
+
+- Restarts all matching Deployments, StatefulSets, and DaemonSets in the current namespace
+- Uses your local kubeconfig for authentication (like `kubectl`)
+- Prints a summary of which controllers were restarted
+
+---
+
+## Usage
 
 ```bash
-go run main.go [--namespace=NAMESPACE] [--controller=TYPE] [--match=STRING]
+go run k8-restart-script.go
 ```
 
-### 🔧 Flags
-
-| Flag           | Description                                                                 |
-|----------------|-----------------------------------------------------------------------------|
-| `--namespace`  | Namespace to operate in. Defaults to current context's namespace            |
-| `--controller` | Controller type to restart: `deployment`, `statefulset`, `daemonset`        |
-| `--match`      | Substring to match in controller names (case-sensitive). Defaults to `database` |
+- By default, it looks for controllers with `database` in their name in your current namespace.
 
 ---
 
-## 🧪 Examples
+## How it Works
 
-### Restart all controllers in the current namespace matching `"database"`
-```bash
-go run main.go
+- The script connects to your Kubernetes cluster using your kubeconfig.
+- It lists all Deployments, StatefulSets, and DaemonSets in the current namespace.
+- For each controller whose name contains `database`, it patches the pod template annotation to trigger a rolling restart.
+
+---
+
+## Requirements
+
+- Go 1.18 or newer
+- Access to a Kubernetes cluster (with a valid kubeconfig at `~/.kube/config`)
+
+---
+
+## Example Output
+
 ```
-
-### Restart only StatefulSets containing `"postgres"` in the `prod` namespace
-```bash
-go run main.go --namespace=prod --controller=statefulset --match=postgres
+Restarted deployment: database-app
+Restarted statefulset: database-store
+Restarted daemonset: database-sidecar
 ```
 
 ---
 
-## 🔐 Authentication
+## Customization
 
-- Uses `~/.kube/config` by default (like `kubectl`)
-- Falls back to in-cluster config if running inside a Pod
+- To change the substring, edit the `match := "database"` line in the script.
+- To use a different namespace, switch your current context or modify the script to accept a namespace argument.
 
 ---
 
-## 📦 Build
+## Build
 
 ```bash
 go mod tidy
-go build -o k8s-restart
+go build -o k8-restart
 ```
 
 ---
 
-## 🛑 Exit Codes
+## Notes
 
-- `0` — all restarts succeeded
-- `1` — at least one restart failed (details shown in summary)
+- This script is intended for simple use cases and learning purposes.
+- For production use, consider adding error handling, logging, and command-line flags for customization.
